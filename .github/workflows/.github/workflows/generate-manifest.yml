@@ -1,1 +1,43 @@
+name: Generate manifest.json
 
+on:
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Generate manifest.json
+        run: |
+          echo "Generating manifest.json"
+          cd cards
+
+          echo "{" > manifest.json
+          first=1
+
+          for f in *.jpg *.png; do
+            [ -e "$f" ] || continue
+            slug="${f%.*}"
+
+            if [ $first -eq 0 ]; then
+              echo "," >> manifest.json
+            fi
+            first=0
+
+            echo "  \"${slug}\": \"${f}\"" >> manifest.json
+          done
+
+          echo "" >> manifest.json
+          echo "}" >> manifest.json
+
+      - name: Commit manifest.json
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add cards/manifest.json
+          git commit -m "Generate manifest.json" || echo "No changes"
+          git push
