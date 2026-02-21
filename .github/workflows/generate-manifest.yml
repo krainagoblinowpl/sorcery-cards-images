@@ -11,28 +11,27 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Generate manifest.json
+      - name: Generate manifest.json using Python
         run: |
-          echo "Generating manifest.json"
-          cd cards
+          python3 - << 'EOF'
+          import os, json
 
-          echo "{" > manifest.json
-          first=1
+          cards_dir = "cards"
+          manifest = {}
 
-          for f in *.jpg *.png; do
-            [ -e "$f" ] || continue
-            slug="${f%.*}"
+          for fname in os.listdir(cards_dir):
+              if not fname.lower().endswith((".jpg", ".png")):
+                  continue
+              slug = os.path.splitext(fname)[0]
+              manifest[slug] = fname
 
-            if [ $first -eq 0 ]; then
-              echo "," >> manifest.json
-            fi
-            first=0
+          manifest = dict(sorted(manifest.items()))
 
-            echo "  \"${slug}\": \"${f}\"" >> manifest.json
-          done
+          with open(os.path.join(cards_dir, "manifest.json"), "w", encoding="utf-8") as f:
+              json.dump(manifest, f, indent=2, ensure_ascii=False)
 
-          echo "" >> manifest.json
-          echo "}" >> manifest.json
+          print(f"Generated manifest.json with {len(manifest)} entries")
+          EOF
 
       - name: Commit manifest.json
         run: |
